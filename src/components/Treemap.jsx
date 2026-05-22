@@ -30,7 +30,6 @@ export default function Treemap({ data, width, height, onHover, onDrillDown }) {
 
     function nodeColor(d) {
       if (d.data.isFolder) {
-        // Find nearest top-level folder ancestor
         let cur = d;
         while (cur.parent && cur.parent !== root) cur = cur.parent;
         return folderColors[cur.data.id] ?? PALETTE[0];
@@ -38,8 +37,12 @@ export default function Treemap({ data, width, height, onHover, onDrillDown }) {
       return extColor(d.data.name);
     }
 
+    // ── Defs: clip paths ──────────────────────────────────────────────────
+    const defs = svg.append('defs');
+
     // ── Draw folder labels (non-leaf groups) ─────────────────────────────
     const groups = root.descendants().filter(d => d.depth > 0 && d.children);
+
     svg.selectAll('.folder-bg')
       .data(groups)
       .join('rect')
@@ -51,10 +54,24 @@ export default function Treemap({ data, width, height, onHover, onDrillDown }) {
         const color = folderColors[d.data.id] ?? PALETTE[0];
         return d3.color(color)?.copy({ opacity: 0.07 }) ?? 'rgba(255,255,255,0.04)';
       })
-      .attr('rx', 3);
+      .attr('rx', 3)
+      .style('cursor', 'pointer')
+      .on('click', (event, d) => onDrillDown?.(d.data));
+
+    const MIN_LABEL_W = 52;
+    const labelGroups = groups.filter(d => (d.x1 - d.x0) >= MIN_LABEL_W);
+
+    labelGroups.forEach((d, i) => {
+      defs.append('clipPath')
+        .attr('id', `flc-${i}`)
+        .append('rect')
+        .attr('x', d.x0).attr('y', d.y0)
+        .attr('width', d.x1 - d.x0)
+        .attr('height', 20);
+    });
 
     svg.selectAll('.folder-label')
-      .data(groups)
+      .data(labelGroups)
       .join('text')
       .attr('class', 'folder-label')
       .attr('x', d => d.x0 + 5)
@@ -64,6 +81,7 @@ export default function Treemap({ data, width, height, onHover, onDrillDown }) {
       .attr('fill', '#94a3b8')
       .attr('fill-opacity', 0.7)
       .attr('pointer-events', 'none')
+      .attr('clip-path', (d, i) => `url(#flc-${i})`)
       .text(d => {
         const w = d.x1 - d.x0;
         const label = `📁 ${d.data.name}`;
@@ -85,7 +103,7 @@ export default function Treemap({ data, width, height, onHover, onDrillDown }) {
       .attr('fill', nodeColor)
       .attr('fill-opacity', 0.75)
       .attr('rx', 2)
-      .style('cursor', d => d.data.isFolder ? 'pointer' : 'default')
+      .style('cursor', 'default')
       .on('mouseover', function (event, d) {
         d3.select(this)
           .attr('fill-opacity', 1)
@@ -101,16 +119,21 @@ export default function Treemap({ data, width, height, onHover, onDrillDown }) {
       .on('mouseout', function () {
         d3.select(this).attr('fill-opacity', 0.75).attr('stroke', null);
         onHover?.(null);
-      })
-      .on('click', (event, d) => {
-        if (d.data.isFolder) onDrillDown?.(d.data);
       });
 
     // Labels for leaves with enough space
-    cell.each(function (d) {
+    leaves.forEach((d, i) => {
+      defs.append('clipPath')
+        .attr('id', `lc-${i}`)
+        .append('rect')
+        .attr('width', Math.max(0, d.x1 - d.x0))
+        .attr('height', Math.max(0, d.y1 - d.y0));
+    });
+
+    cell.each(function (d, i) {
       const w = d.x1 - d.x0;
       const h = d.y1 - d.y0;
-      if (w < 36 || h < 14) return;
+      if (w < 48 || h < 16) return;
       const g = d3.select(this);
       const fontSize = Math.min(11, Math.max(8, w / 12));
       const name = d.data.name;
@@ -118,22 +141,24 @@ export default function Treemap({ data, width, height, onHover, onDrillDown }) {
       const label = name.length > maxChars ? name.slice(0, maxChars - 1) + '…' : name;
 
       g.append('text')
-        .attr('x', 3).attr('y', fontSize + 1)
+        .attr('x', 3).attr('y', fontSize + 2)
         .attr('font-size', fontSize)
         .attr('font-family', CSS.mono)
         .attr('fill', '#fff')
         .attr('fill-opacity', 0.88)
         .attr('pointer-events', 'none')
+        .attr('clip-path', `url(#lc-${i})`)
         .text(label);
 
-      if (h > 28 && w > 60) {
+      if (h > 30 && w > 64) {
         g.append('text')
-          .attr('x', 3).attr('y', fontSize * 2 + 3)
+          .attr('x', 3).attr('y', fontSize * 2 + 4)
           .attr('font-size', Math.max(8, fontSize - 1))
           .attr('font-family', CSS.mono)
           .attr('fill', '#fff')
           .attr('fill-opacity', 0.5)
           .attr('pointer-events', 'none')
+          .attr('clip-path', `url(#lc-${i})`)
           .text(formatBytes(d.value ?? d.data.size));
       }
     });
