@@ -1,6 +1,12 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Treemap from './Treemap';
 import { formatBytes, EXT_COLORS, CSS } from '../utils/theme';
+import { subtreeSize } from '../utils/treeBuilder';
+
+function countFiles(node) {
+  if (!node.children || node.children.length === 0) return 1;
+  return node.children.reduce((s, c) => s + countFiles(c), 0);
+}
 
 export default function TreemapScreen({ tree, stats, user, onRescan, onLogout }) {
   const containerRef = useRef(null);
@@ -23,6 +29,11 @@ export default function TreemapScreen({ tree, stats, user, onRescan, onLogout })
     if (containerRef.current) obs.observe(containerRef.current);
     return () => obs.disconnect();
   }, []);
+  
+  const currentStats = useMemo(() => {
+  if (currentData === tree) return stats;
+  return { count: countFiles(currentData), total: subtreeSize(currentData) };
+}, [currentData, tree, stats]);
 
   const drillDown = useCallback((folderData) => {
     setBreadcrumb(b => [...b, { name: currentData.name, node: currentData }]);
@@ -63,7 +74,7 @@ export default function TreemapScreen({ tree, stats, user, onRescan, onLogout })
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
             }}>DriveMap</span>
             <span style={{ color: '#475569', fontSize: 11, marginLeft: 8, fontFamily: CSS.mono }}>
-              {stats.count.toLocaleString()} files · {formatBytes(stats.total)}
+              {currentStats.count.toLocaleString()} files · {formatBytes(currentStats.total)}
             </span>
           </div>
         </div>

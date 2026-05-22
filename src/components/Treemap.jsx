@@ -10,7 +10,6 @@ export default function Treemap({ data, width, height, onHover, onDrillDown }) {
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
 
-    // ── Build hierarchy ──────────────────────────────────────────────────
     const root = d3.hierarchy(data)
       .sum(d => d.size ?? 0)
       .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
@@ -22,7 +21,6 @@ export default function Treemap({ data, width, height, onHover, onDrillDown }) {
       .paddingInner(1.5)
       .round(true)(root);
 
-    // ── Color: top-level folders get palette colors; files use ext color ─
     const folderColors = {};
     (root.children ?? []).forEach((child, i) => {
       folderColors[child.data.id] = PALETTE[i % PALETTE.length];
@@ -37,10 +35,9 @@ export default function Treemap({ data, width, height, onHover, onDrillDown }) {
       return extColor(d.data.name);
     }
 
-    // ── Defs: clip paths ──────────────────────────────────────────────────
     const defs = svg.append('defs');
 
-    // ── Draw folder labels (non-leaf groups) ─────────────────────────────
+    // Folder groups — clickable, labeled
     const groups = root.descendants().filter(d => d.depth > 0 && d.children);
 
     svg.selectAll('.folder-bg')
@@ -89,8 +86,12 @@ export default function Treemap({ data, width, height, onHover, onDrillDown }) {
         return label.length > max ? label.slice(0, max - 1) + '…' : label;
       });
 
-    // ── Draw leaves ───────────────────────────────────────────────────────
-    const leaves = root.leaves();
+    // Leaves — skip invisibly small tiles to keep DOM lean
+    const MIN_AREA = 4;
+    const leaves = root.leaves().filter(
+      d => (d.x1 - d.x0) * (d.y1 - d.y0) >= MIN_AREA
+    );
+
     const cell = svg.selectAll('.cell')
       .data(leaves)
       .join('g')
@@ -121,16 +122,7 @@ export default function Treemap({ data, width, height, onHover, onDrillDown }) {
         onHover?.(null);
       });
 
-    // Labels for leaves with enough space
-    leaves.forEach((d, i) => {
-      defs.append('clipPath')
-        .attr('id', `lc-${i}`)
-        .append('rect')
-        .attr('width', Math.max(0, d.x1 - d.x0))
-        .attr('height', Math.max(0, d.y1 - d.y0));
-    });
-
-    cell.each(function (d, i) {
+    cell.each(function (d) {
       const w = d.x1 - d.x0;
       const h = d.y1 - d.y0;
       if (w < 48 || h < 16) return;
@@ -147,7 +139,6 @@ export default function Treemap({ data, width, height, onHover, onDrillDown }) {
         .attr('fill', '#fff')
         .attr('fill-opacity', 0.88)
         .attr('pointer-events', 'none')
-        .attr('clip-path', `url(#lc-${i})`)
         .text(label);
 
       if (h > 30 && w > 64) {
@@ -158,7 +149,6 @@ export default function Treemap({ data, width, height, onHover, onDrillDown }) {
           .attr('fill', '#fff')
           .attr('fill-opacity', 0.5)
           .attr('pointer-events', 'none')
-          .attr('clip-path', `url(#lc-${i})`)
           .text(formatBytes(d.value ?? d.data.size));
       }
     });
