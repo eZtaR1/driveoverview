@@ -56,7 +56,8 @@ export default function Treemap({ data, width, height, onHover, onDrillDown }) {
       .on('click', (event, d) => onDrillDown?.(d.data));
 
     const MIN_LABEL_W = 52;
-    const labelGroups = groups.filter(d => (d.x1 - d.x0) >= MIN_LABEL_W);
+    // Only label depth-1 folders — deeper folders only get 2px paddingTop so labels would overlap content
+    const labelGroups = groups.filter(d => d.depth === 1 && (d.x1 - d.x0) >= MIN_LABEL_W);
 
     labelGroups.forEach((d, i) => {
       defs.append('clipPath')
