@@ -2,7 +2,7 @@
 
 > WinDirStat/SpaceMonger-style treemap visualizer for Google Drive — runs entirely in your browser.
 
-![DriveMap screenshot placeholder](https://via.placeholder.com/800x400/080d18/00ff88?text=DriveMap+–+Visualize+Your+Drive)
+![DriveMap screenshot](docs/preview.png)
 
 ## Features
 
