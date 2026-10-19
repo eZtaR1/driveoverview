@@ -56,14 +56,14 @@
 4. Go to **Settings → Pages**
    - Source: **GitHub Actions**
 5. Push to `main` (or trigger the workflow manually under **Actions**)
-6. Your app is live at `https://YOUR_USERNAME.github.io/drivemap/`
+6. Your app is live at `https://YOUR_USERNAME.github.io/driveoverview/`
 
 #### Option B – Local development
 
 ```bash
 # Clone your fork
-git clone https://github.com/YOUR_USERNAME/drivemap
-cd drivemap
+git clone https://github.com/YOUR_USERNAME/driveoverview
+cd driveoverview
 
 # Install dependencies
 npm install
@@ -81,7 +81,7 @@ npm run dev
 ## Project structure
 
 ```
-drivemap/
+driveoverview/
 ├── src/
 │   ├── components/
 │   │   ├── LandingScreen.jsx   # Sign-in page

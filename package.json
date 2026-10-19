@@ -1,5 +1,5 @@
 {
-  "name": "drivemap",
+  "name": "driveoverview",
   "version": "1.0.0",
   "description": "WinDirStat-style Google Drive space visualizer",
   "type": "module",
